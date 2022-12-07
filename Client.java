@@ -33,7 +33,12 @@ public class Client {
             Scanner scanner = new Scanner(System.in);
             while(socket.isConnected()) {
                 String messageToSend = scanner.nextLine();
-                bufferedWriter.write(username + ": " + messageToSend);
+                // bufferedWriter.write(username + ": " + messageToSend);
+                // 
+                // bufferedWriter.write("/gm " + username + " [receiver]>" + messageToSend);
+
+                bufferedWriter.write(messageToSend);
+                
                 bufferedWriter.newLine();
                 bufferedWriter.flush();
             }
@@ -85,7 +90,7 @@ public class Client {
         Socket socket = new Socket("localhost", 3000);
         Client client = new Client(socket, username);
 
-        // both thread runs cocurrently
+        // both thread runs concurrently
         client.listenForMessage();
         client.sendMessage();
     }

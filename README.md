@@ -1,2 +1,5 @@
 # group-chat-socket
-## Tapi boong hehe
+Group Project
+
+## Reference
+https://www.youtube.com/watch?v=gLfuZrrfKes&t=352s
