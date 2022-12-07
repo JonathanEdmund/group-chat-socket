@@ -1,54 +1,53 @@
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 
 public class Server {
+    private ServerSocket serverSocket;
+
+    public Server(ServerSocket serverSocket) {
+        this.serverSocket = serverSocket;
+    }
+
     public static void main(String[] args) throws IOException {
+        
         final int port = 3000;
-        ArrayList<Client> clientList = new ArrayList<>();
-        try (ServerSocket serverSocket = new  ServerSocket(port)) {
-            System.out.println("Server running on port " + port);
-            Thread connection = new Thread(new Runnable() {
-                Socket socket;
-                @Override
-                public void run() {
-                    while(true){
-                        try {
-                            socket = serverSocket.accept();
-                            Client c = new Client(socket);
-                            clientList.add(c);
-                            System.out.println(c.name + " has joined.");
-                            
-                            Thread listen = new Thread(new Runnable() {
 
-                                @Override
-                                public void run() {
-                                    while(true) {
-                                        String command = c.read();
-                                        if (command.charAt(0) == '/')
-                                        {
-                                            System.out.println("This is a command");
-                                        }
-                                        else 
-                                        {
-                                            System.out.println(c.name + " : " + command);
-                                        }
-                                    }
-                                }
-                            });
+        ServerSocket serverSocket = new ServerSocket(port);
+        Server server = new Server(serverSocket);
+        System.out.println("Server started at port " + port);
+        server.startServer();
 
-                            listen.run();
+    }
 
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }   
-                    }
-                }
-                
-            });
-            connection.run();
+    public void startServer() {
+        
+        try {
+            while (!serverSocket.isClosed()){
+
+                Socket socket = serverSocket.accept();
+                System.out.println("A new client has connected");
+                ClientHandler clientHandler = new ClientHandler(socket);
+
+                // thread to listen to clients
+                Thread thread = new Thread(clientHandler);
+                thread.start();
+            }
+
+        } catch (IOException e) {
+            
         }
     }
-  
+    
+    public void closeServerSocket() {
+
+        try {
+            if (serverSocket != null){
+                serverSocket.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
 }

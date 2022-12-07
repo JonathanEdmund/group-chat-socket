@@ -1,64 +1,92 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.Socket;
+import java.util.Scanner;
 
 public class Client {
-    
-    Socket socket;
-    InputStream is;
-    OutputStream os;
-    String name;
 
-    Client(Socket socket) throws IOException {
-        this.socket = socket;
-        is = socket.getInputStream();
-        os = socket.getOutputStream();
-        initialSetup();
-    }
+    private Socket socket;
+    private BufferedReader bufferedReader;
+    private BufferedWriter bufferedWriter;
+    private String username;
 
-    private void initialSetup() {
-        // client name
-        write("Type your name: "); // output to client
-        name = read();
-    }
-
-    public String read(){
-        String msg = "";
-        boolean exit = false;
-        while(!exit) {
-            try {
-                if (is.available() > 0) {
-                    int d;
-                    while((d = is.read()) != 38) {
-                        msg = msg + (char) d;
-                    }
-                    exit = true;
-                }
-            } catch (IOException e) {
-                System.out.println("Error reading msg...");
-            }
-        }
-        return msg;
-    }
-
-    public void write(String msg) {
+    public Client(Socket socket, String username){
         try {
-            os.write((msg + "&").getBytes());
-            os.flush();
+            this.socket = socket;
+            this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            this.username = username;
         } catch (IOException e) {
-            System.out.println("Error sending msg...");
+            closeEverything(socket, bufferedReader, bufferedWriter);
         }
     }
 
-    public void close() {
+    public void sendMessage() {
         try {
-            socket.close();
-            os.close();
-            is.close();
+            bufferedWriter.write(username);
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
+
+            Scanner scanner = new Scanner(System.in);
+            while(socket.isConnected()) {
+                String messageToSend = scanner.nextLine();
+                bufferedWriter.write(username + ": " + messageToSend);
+                bufferedWriter.newLine();
+                bufferedWriter.flush();
+            }
+        } catch (IOException e) {
+            closeEverything(socket, bufferedReader, bufferedWriter);
+        }
+    }
+
+    public void listenForMessage() {
+        new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                String msgFromGroupChat;
+
+                while (socket.isConnected()) {
+                    try {
+                        msgFromGroupChat = bufferedReader.readLine();
+                        System.out.println(msgFromGroupChat);
+                    } catch (IOException e) {
+                        closeEverything(socket, bufferedReader, bufferedWriter);
+                    }
+                }
+            }
+        }).start();
+    }
+
+    public void closeEverything(Socket socket, BufferedReader bufferedReader, BufferedWriter bufferedWriter) {
+        try {
+            if (bufferedReader != null) {
+                bufferedReader.close();
+            }
+            if (bufferedWriter != null) {
+                bufferedWriter.close();
+            }
+            if (socket != null) {
+                socket.close();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    public static void main(String[] args) throws IOException {
+        
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter username: ");
+        String username = scanner.nextLine();
+        Socket socket = new Socket("localhost", 3000);
+        Client client = new Client(socket, username);
+
+        // both thread runs cocurrently
+        client.listenForMessage();
+        client.sendMessage();
+    }
 }
