@@ -6,15 +6,17 @@ import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class ClientHandler implements Runnable {
     
-    public static ArrayList<ClientHandler> clientHandlers = new ArrayList<>(); // belongs to the class (not each objects)
+    public static ArrayList<ClientHandler> clientHandlers = new ArrayList<>(); 
+    public static ArrayList<ChatRoom> chatRooms = new ArrayList<>();
 
     private Socket socket;
     private BufferedReader bufferedReader;
-    private BufferedWriter bufferedWriter;
-    private String clientUsername;
+    BufferedWriter bufferedWriter;
+    String clientUsername;
 
     public ClientHandler(Socket socket){
         try {
@@ -43,8 +45,6 @@ public class ClientHandler implements Runnable {
 
                 // split commmands
                 String[] command  = message[0].split(" ");
-
-                System.out.println(Arrays.toString(command) + " " + message[1]);
                 
                 // merge command and message into an arraylist
                 ArrayList<String> commands = new ArrayList<>();
@@ -57,11 +57,95 @@ public class ClientHandler implements Runnable {
                 // controller (call methods based on client commands)
                 controller(commands);
 
-                // broadcastMessage(messageFromClient);
             } catch (IOException e) {
                 closeEverything(socket, bufferedReader, bufferedWriter);
                 break;
             }
+        }
+    }
+
+    public void controller(ArrayList<String> commands) {
+        String command = commands.get(0);
+        // make checks for syntax (ingpo) for incorrect commands
+        switch (command) {
+            case "/reg":
+                // register user
+                break;
+
+            case "/lsuser":
+                // list all users
+                listUsers();
+                break;
+
+            case "/rmu":
+                // remove user
+                break;
+
+            case "/mkgroup":
+            {
+                // create group => /mkgroup [groupName]
+                String groupName = commands.get(1);
+                createGroup(groupName);
+                break;
+            }
+            case "/join": 
+            {
+                // join group => /join [groupName]
+                String groupName = commands.get(1);
+                joinGroup(groupName, this);
+                break;
+            }
+            case "/exit":
+            {
+                // exit group
+                String groupName = commands.get(1);
+                exitGroup(groupName, this);
+                break;
+            }
+            case "/lsgroup":
+            {
+                // list groups
+                listGroups();
+                break;
+            }
+            case "/lsparticipants":
+            {
+                // list participants in group => /lsparticipants [groupName]
+                String groupName = commands.get(1);
+                listGroupParticipants(groupName);
+                break;
+            }
+            case "/dm":
+            {
+                // direct message
+                String senderName = commands.get(1);
+                String receiverName = commands.get(2);
+                String message = commands.get(3);
+                
+                directMessage(senderName, receiverName, message);
+                
+                break;
+            }
+            case "/gm":
+            {
+                // group message => /gm [senderName] [groupName]>[message]
+                String senderName = commands.get(1);
+                String groupName = commands.get(2);
+                String message = commands.get(3);
+                groupMessage(senderName, groupName, message);
+                break;
+            }
+            case "/reqlsuser":
+                // respond to client list
+                break;
+
+            case "/reqlsgroup":
+                // respond to group list request
+                break;
+
+            default:
+                // commmand not found
+                write("SERVER: Uknown command!");
         }
     }
 
@@ -79,83 +163,174 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    public void directMessage(String senderName, String receiverName, String messageToSend) throws IOException {
+    public void directMessage(String senderName, String receiverName, String messageToSend) {
 
         // find receiver in the client list
-        System.out.println("directMessage reached");
-        System.out.println(clientHandlers.size());
-        System.out.println(messageToSend);
-        
         for (int i = 0; i < clientHandlers.size(); i++) {
             try {
                 ClientHandler clientHandler = clientHandlers.get(i);
-                System.out.println(receiverName + " = " + clientHandler.clientUsername);
+
+                // not found
                 if (!clientHandler.clientUsername.equals(receiverName)) {
                     if (i == clientHandlers.size()-1) {
-                        // this.clientHandler.bufferedWriter.write("Receiver not found!")   
-                        System.out.println("Receiver not found!"); 
+
+                        // notify not found receiver to client
+                        this.bufferedWriter.write("SERVER: Receiver not found!");
+                        this.bufferedWriter.newLine();
+                        this.bufferedWriter.flush();
                         break;
                     }
                     continue;
+                    
                 }
-                System.out.println("Found");
+                
+                // client found
                 clientHandler.bufferedWriter.write("/dm " + senderName + " " + receiverName + ">" + messageToSend);
                 clientHandler.bufferedWriter.newLine();
                 clientHandler.bufferedWriter.flush();
                 break;
+
             } catch (IOException e) {
                 closeEverything(socket, bufferedReader, bufferedWriter);
             }
         }
     }
 
-    public void controller(ArrayList<String> commands) {
-        String command = commands.get(0);
+    public void groupMessage(String senderName, String groupName, String messageToSend) {
+        // find group
+        for (int i = 0; i < chatRooms.size(); i++) {
+            ChatRoom chatRoom = chatRooms.get(i);
 
-        switch (command) {
-            case "/reg":
-                // register user
-                break;
-            case "/lsuser":
-                // list all users
-                break;
-            case "/rmu":
-                // remove user
-                break;
-            case "/mkgroup":
-                // create group
-                break;
-            case "/join":
-                // join group
-                break;
-            case "/exit":
-                // exit group
-                break;
-            case "/lsgroup":
-                // list groups
-                break;
-            case "/dm":
-                // direct message
-                try {
-                    String senderName = commands.get(1);
-                    String receiverName = commands.get(2);
-                    String message = commands.get(3);
-                    directMessage(senderName, receiverName, message);
-                } catch (IOException e) {
-                    e.printStackTrace();
+            if(!chatRoom.roomName.equals(groupName)){
+                if (i == chatRooms.size()-1) {
+                    // room not found
+                    System.out.println("chat room not found");
+                    write("SERVER: Room not found!");
+                    return;
                 }
-                break;
-            case "/gm":
-                // group message
-                break;
-            case "/reqlsuser":
-                // gm method
-                break;
-            case "/reqlsgroup":
-                // gm method
-                break;
-            default:
-                // commmand not found 
+                continue;
+            }
+
+            // broadcast message to group
+            chatRoom.broadcast(senderName, messageToSend);
+            return;
+        }
+
+    }
+
+    public void listUsers() {
+
+        String clientList = "";
+        for (ClientHandler clientHandler : clientHandlers) {
+            clientList += clientHandler.clientUsername + " ";
+        }
+
+        try {
+            this.bufferedWriter.write(clientList);
+            this.bufferedWriter.newLine();
+            this.bufferedWriter.flush();
+        } catch (IOException e) {
+            closeEverything(socket, bufferedReader, bufferedWriter);
+        }
+    }
+
+    public void listGroups() {
+
+        String groupList = "";
+
+        for (ChatRoom chatroom : chatRooms) {
+            groupList += chatroom.roomName + " ";
+        }
+
+        write(groupList);
+    }
+
+    public void listGroupParticipants(String groupName) {
+        // find group
+        for (int i = 0; i < chatRooms.size(); i++) {
+            ChatRoom chatRoom = chatRooms.get(i);
+
+            if(!chatRoom.roomName.equals(groupName)){
+                if (i == chatRooms.size()-1) {
+                    // room not found
+                    System.out.println("chat room not found");
+                    write("SERVER: Room not found!");
+                    return;
+                }
+                continue;
+            }
+
+            // list participants
+            write(chatRoom.getParticipantList());
+            return;
+
+        }
+    }
+
+    public void createGroup(String groupName) {
+        // check for duplicate groupName (ingpo)
+
+
+        // create group
+        ChatRoom newChatRoom = new ChatRoom(groupName);
+        newChatRoom.participants.add(this);
+        chatRooms.add(newChatRoom);
+
+        // send status
+        write("SERVER: Successfully created new group " + groupName+ "!");
+    }
+
+    public void joinGroup(String groupName, ClientHandler clientHandler) {
+        // find chatroom
+        for (int i = 0; i < chatRooms.size(); i++) {
+            ChatRoom chatRoom = chatRooms.get(i);
+            
+            if(!chatRoom.roomName.equals(groupName)){
+                if (i == chatRooms.size()-1) {
+                    // room not found
+                    System.out.println("chat room not found");
+                    write("SERVER: Room not found!");
+                    return;
+                }
+                continue;
+            }
+
+            // add clientHandler
+            chatRoom.participants.add(clientHandler);
+            write("SERVER: Successfully added " + clientUsername + " to " + groupName);
+            return;
+        }
+    }
+
+    public void exitGroup(String groupName, ClientHandler clientHandler) {
+        // find chatroom
+        for (int i = 0; i < chatRooms.size(); i++) {
+            ChatRoom chatRoom = chatRooms.get(i);
+            
+            if(!chatRoom.roomName.equals(groupName)){
+                if (i == chatRooms.size()-1) {
+                    // room not found
+                    System.out.println("chat room not found");
+                    write("SERVER: Room not found!");
+                    return;
+                }
+                continue;
+            }
+
+            // remove clientHandler
+            chatRoom.participants.remove(clientHandler);
+            write("SERVER: Successfully exit group");
+            return;
+        }
+    }
+
+    public void write(String message) {
+        try {
+            this.bufferedWriter.write(message);
+            this.bufferedWriter.newLine();
+            this.bufferedWriter.flush();
+        } catch (IOException e) {
+            closeEverything(socket, bufferedReader, bufferedWriter);
         }
     }
 
