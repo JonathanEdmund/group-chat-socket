@@ -5,8 +5,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.stream.Collectors;
 
 public class ClientHandler implements Runnable {
     
@@ -66,24 +64,27 @@ public class ClientHandler implements Runnable {
 
     public void controller(ArrayList<String> commands) {
         String command = commands.get(0);
-        // make checks for syntax (ingpo) for incorrect commands
         switch (command) {
             case "/reg":
                 // register user
                 break;
 
             case "/lsuser":
+            {
                 // list all users
+                if(!checkSyntax(1, commands)) break;
                 listUsers();
                 break;
-
+            }
             case "/rmu":
                 // remove user
                 break;
-
+            
             case "/mkgroup":
             {
                 // create group => /mkgroup [groupName]
+                if(!checkSyntax(2, commands)) break;
+                
                 String groupName = commands.get(1);
                 createGroup(groupName);
                 break;
@@ -91,6 +92,8 @@ public class ClientHandler implements Runnable {
             case "/join": 
             {
                 // join group => /join [groupName]
+                if(!checkSyntax(2, commands)) break;
+                
                 String groupName = commands.get(1);
                 joinGroup(groupName, this);
                 break;
@@ -98,6 +101,8 @@ public class ClientHandler implements Runnable {
             case "/exit":
             {
                 // exit group
+                if(!checkSyntax(1, commands)) break;
+                
                 String groupName = commands.get(1);
                 exitGroup(groupName, this);
                 break;
@@ -105,19 +110,25 @@ public class ClientHandler implements Runnable {
             case "/lsgroup":
             {
                 // list groups
+                if(!checkSyntax(1, commands)) break;
+                
                 listGroups();
                 break;
             }
             case "/lsparticipants":
             {
                 // list participants in group => /lsparticipants [groupName]
+                if(!checkSyntax(2, commands)) break;
+                
                 String groupName = commands.get(1);
                 listGroupParticipants(groupName);
                 break;
             }
             case "/dm":
             {
-                // direct message
+                // direct message => /dm [senderName] [receiverName]>[message]
+                if(!checkSyntax(4, commands)) break;
+                
                 String senderName = commands.get(1);
                 String receiverName = commands.get(2);
                 String message = commands.get(3);
@@ -129,6 +140,8 @@ public class ClientHandler implements Runnable {
             case "/gm":
             {
                 // group message => /gm [senderName] [groupName]>[message]
+                if(!checkSyntax(4, commands)) break;
+                
                 String senderName = commands.get(1);
                 String groupName = commands.get(2);
                 String message = commands.get(3);
@@ -175,9 +188,10 @@ public class ClientHandler implements Runnable {
                     if (i == clientHandlers.size()-1) {
 
                         // notify not found receiver to client
-                        this.bufferedWriter.write("SERVER: Receiver not found!");
-                        this.bufferedWriter.newLine();
-                        this.bufferedWriter.flush();
+                        // this.bufferedWriter.write("SERVER: Receiver not found!");
+                        // this.bufferedWriter.newLine();
+                        // this.bufferedWriter.flush();
+                        write("SERVER: Receiver not found!");
                         break;
                     }
                     continue;
@@ -204,7 +218,7 @@ public class ClientHandler implements Runnable {
             if(!chatRoom.roomName.equals(groupName)){
                 if (i == chatRooms.size()-1) {
                     // room not found
-                    System.out.println("chat room not found");
+                    System.out.println("Chat room not found");
                     write("SERVER: Room not found!");
                     return;
                 }
@@ -224,14 +238,9 @@ public class ClientHandler implements Runnable {
         for (ClientHandler clientHandler : clientHandlers) {
             clientList += clientHandler.clientUsername + " ";
         }
-
-        try {
-            this.bufferedWriter.write(clientList);
-            this.bufferedWriter.newLine();
-            this.bufferedWriter.flush();
-        } catch (IOException e) {
-            closeEverything(socket, bufferedReader, bufferedWriter);
-        }
+        
+        write(clientList);
+        
     }
 
     public void listGroups() {
@@ -268,8 +277,13 @@ public class ClientHandler implements Runnable {
     }
 
     public void createGroup(String groupName) {
-        // check for duplicate groupName (ingpo)
-
+        // check for duplicate groupName
+        for (ChatRoom chatroom : chatRooms) {
+            if (chatroom.roomName.equals(groupName)) {
+                write("SERVER: Group name already in use!");
+                return;
+            }
+        }
 
         // create group
         ChatRoom newChatRoom = new ChatRoom(groupName);
@@ -288,13 +302,19 @@ public class ClientHandler implements Runnable {
             if(!chatRoom.roomName.equals(groupName)){
                 if (i == chatRooms.size()-1) {
                     // room not found
-                    System.out.println("chat room not found");
+                    System.out.println("Chat room not found");
                     write("SERVER: Room not found!");
                     return;
                 }
                 continue;
             }
 
+            // check if client is already a participant
+            if (chatRoom.participants.contains(clientHandler)) {
+                write("SERVER: Client has already joined this group!");
+                return;
+            }
+            
             // add clientHandler
             chatRoom.participants.add(clientHandler);
             write("SERVER: Successfully added " + clientUsername + " to " + groupName);
@@ -319,9 +339,20 @@ public class ClientHandler implements Runnable {
 
             // remove clientHandler
             chatRoom.participants.remove(clientHandler);
-            write("SERVER: Successfully exit group");
+            write("SERVER: Successfully exit group...");
             return;
         }
+    }
+
+    public boolean checkSyntax(int fixedLength, ArrayList<String> command) {
+        // checks command length
+        if (command.size() != fixedLength) {
+            int expectedArguments = fixedLength - 1;
+            write("SERVER: Incorrect command syntax! Expecting " + expectedArguments + " argument(s).");
+            return false;
+        }
+
+        return true;
     }
 
     public void write(String message) {
@@ -338,6 +369,7 @@ public class ClientHandler implements Runnable {
         clientHandlers.remove(this);
         broadcastMessage("SERVER: " + clientUsername + " has left the chat!");
     }
+
 
     public void closeEverything(Socket socket, BufferedReader bufferedReader, BufferedWriter bufferedWriter) {
         removeClientHandler();
