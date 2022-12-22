@@ -78,6 +78,8 @@ public class ClientHandler implements Runnable {
             }
             case "/rmu":
                 // remove user
+                if(!checkSyntax(1, commands)) break;
+                closeEverything(socket, bufferedReader, bufferedWriter);
                 break;
             
             case "/mkgroup":
@@ -117,6 +119,10 @@ public class ClientHandler implements Runnable {
             }
             case "/lsparticipants":
             {
+                if(chatRooms.size() < 1) {
+                    write("SERVER: Empty group list!"); 
+                    break;
+                }
                 // list participants in group => /lsparticipants [groupName]
                 if(!checkSyntax(2, commands)) break;
                 
@@ -186,11 +192,6 @@ public class ClientHandler implements Runnable {
                 // not found
                 if (!clientHandler.clientUsername.equals(receiverName)) {
                     if (i == clientHandlers.size()-1) {
-
-                        // notify not found receiver to client
-                        // this.bufferedWriter.write("SERVER: Receiver not found!");
-                        // this.bufferedWriter.newLine();
-                        // this.bufferedWriter.flush();
                         write("SERVER: Receiver not found!");
                         break;
                     }
@@ -234,24 +235,25 @@ public class ClientHandler implements Runnable {
 
     public void listUsers() {
 
-        String clientList = "";
+        ArrayList<String> clientList = new ArrayList<>();
+
         for (ClientHandler clientHandler : clientHandlers) {
-            clientList += clientHandler.clientUsername + " ";
+            clientList.add(clientHandler.clientUsername);
         }
         
-        write(clientList);
+        write(clientList.toString());
         
     }
 
     public void listGroups() {
 
-        String groupList = "";
+        ArrayList<String> groupList = new ArrayList<>();
 
         for (ChatRoom chatroom : chatRooms) {
-            groupList += chatroom.roomName + " ";
+            groupList.add(chatroom.roomName);
         }
 
-        write(groupList);
+        write(groupList.toString());
     }
 
     public void listGroupParticipants(String groupName) {

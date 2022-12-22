@@ -1,8 +1,6 @@
 import java.util.ArrayList;
 
 public class ChatRoom {
-    // list of groups
-    // public static ArrayList<ChatRoom> chatroom = new ArrayList<>();
     public String roomName;
     public ArrayList<ClientHandler> participants = new ArrayList<>();
 
@@ -20,12 +18,13 @@ public class ChatRoom {
     }
 
     public String getParticipantList() {
-        String list = "";
+        
+        ArrayList<String> list = new ArrayList<>();
 
         for (ClientHandler participant : participants) {
-            list += participant.clientUsername + " ";
+            list.add(participant.clientUsername);
         }
 
-        return list;
+        return list.toString();
     }
 }
