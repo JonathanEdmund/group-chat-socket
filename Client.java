@@ -57,9 +57,13 @@ public class Client {
                 while (socket.isConnected()) {
                     try {
                         msgFromGroupChat = bufferedReader.readLine();
+                        if(msgFromGroupChat == null) {
+                            throw new IOException();
+                        }
                         System.out.println(msgFromGroupChat);
                     } catch (IOException e) {
                         closeEverything(socket, bufferedReader, bufferedWriter);
+                        System.exit(0);
                     }
                 }
             }
@@ -76,7 +80,7 @@ public class Client {
             }
             if (socket != null) {
                 socket.close();
-            }
+            }      
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -87,8 +91,8 @@ public class Client {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Enter username: ");
         String username = scanner.nextLine();
-        // Socket socket = new Socket("localhost", 5000);
-        Socket socket = new Socket("0.tcp.jp.ngrok.io", 15737);
+        Socket socket = new Socket("localhost", 5000);
+        // Socket socket = new Socket("0.tcp.jp.ngrok.io", 11945);
         Client client = new Client(socket, username);
 
         // both thread runs concurrently
