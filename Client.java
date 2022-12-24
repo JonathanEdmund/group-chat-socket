@@ -87,7 +87,8 @@ public class Client {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Enter username: ");
         String username = scanner.nextLine();
-        Socket socket = new Socket("localhost", 5000);
+        // Socket socket = new Socket("localhost", 5000);
+        Socket socket = new Socket("0.tcp.jp.ngrok.io", 15737);
         Client client = new Client(socket, username);
 
         // both thread runs concurrently

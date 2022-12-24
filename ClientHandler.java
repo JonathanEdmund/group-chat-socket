@@ -102,8 +102,8 @@ public class ClientHandler implements Runnable {
             }
             case "/exit":
             {
-                // exit group
-                if(!checkSyntax(1, commands)) break;
+                // exit group => /exit [groupName]
+                if(!checkSyntax(2, commands)) break;
                 
                 String groupName = commands.get(1);
                 exitGroup(groupName, this);
@@ -119,11 +119,11 @@ public class ClientHandler implements Runnable {
             }
             case "/lsparticipants":
             {
-                if(chatRooms.size() < 1) {
+                // list participants in group => /lsparticipants [groupName] 
+                if(chatRooms.isEmpty()) {
                     write("SERVER: Empty group list!"); 
                     break;
                 }
-                // list participants in group => /lsparticipants [groupName]
                 if(!checkSyntax(2, commands)) break;
                 
                 String groupName = commands.get(1);
@@ -164,7 +164,7 @@ public class ClientHandler implements Runnable {
 
             default:
                 // commmand not found
-                write("SERVER: Uknown command!");
+                write("SERVER: Unknown command!");
         }
     }
 
@@ -341,7 +341,7 @@ public class ClientHandler implements Runnable {
 
             // remove clientHandler
             chatRoom.participants.remove(clientHandler);
-            write("SERVER: Successfully exit group...");
+            write("SERVER: Successfully exit group.");
             return;
         }
     }
