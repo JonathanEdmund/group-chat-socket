@@ -11,7 +11,7 @@ public class Server {
 
     public static void main(String[] args) throws IOException {
         
-        final int port = 5000;
+        final int port = 10000;
 
         ServerSocket serverSocket = new ServerSocket(port);
         Server server = new Server(serverSocket);

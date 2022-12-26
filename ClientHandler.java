@@ -38,6 +38,8 @@ public class ClientHandler implements Runnable {
             try {
                 messageFromClient = bufferedReader.readLine();
                 
+                if (messageFromClient == null) throw new IOException();
+
                 // split message from command (">")
                 String[] message = messageFromClient.split(">", 2);
 
@@ -53,6 +55,7 @@ public class ClientHandler implements Runnable {
                 if (message.length > 1) commands.add(message[1]); 
 
                 // controller (call methods based on client commands)
+                if (commands.isEmpty()) throw new IOException();
                 controller(commands);
 
             } catch (IOException e) {
@@ -63,12 +66,9 @@ public class ClientHandler implements Runnable {
     }
 
     public void controller(ArrayList<String> commands) {
+
         String command = commands.get(0);
         switch (command) {
-            case "/reg":
-                // register user
-                break;
-
             case "/lsuser":
             {
                 // list all users
@@ -154,14 +154,6 @@ public class ClientHandler implements Runnable {
                 groupMessage(senderName, groupName, message);
                 break;
             }
-            case "/reqlsuser":
-                // respond to client list
-                break;
-
-            case "/reqlsgroup":
-                // respond to group list request
-                break;
-
             default:
                 // commmand not found
                 write("SERVER: Unknown command!");
